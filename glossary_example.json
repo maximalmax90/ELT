@@ -1,0 +1,17 @@
+{
+    "Abbreviations": {
+        "ABBR": {
+            "Meaning": "Abbreviations",
+            "LANGUAGE": "VALUE"
+        }
+    },
+    "Words": {
+        "WORD": {
+            "LANGUAGE":"VALUE"
+        }
+    },
+    "Skip": [
+        "Word",
+        "or words"
+    ]
+}
