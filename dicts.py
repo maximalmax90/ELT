@@ -1,5 +1,3 @@
-from fileio import load_json, save_json
-
 """Перевод словаря в список и обратно"""
 def dict_convert(src: dict, direction: str) -> None:
     dst = []

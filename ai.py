@@ -1,5 +1,6 @@
 import json
 import requests
+import ftfy
 
 # Возможно в будущем будет вынесено в настройки
 proxies = {
@@ -27,6 +28,7 @@ def translate_allm(api_url: str, headers: str, workspace: str, thread: str, text
     create_thread = requests.post(f"{api_url}/workspace/{workspace}/thread/new", headers=headers, data=json.dumps({"userId": 1, "name": f"{thread}", "slug": f"{thread}"}), proxies=proxies)
     if create_thread.status_code == 200:
         request = requests.post(f"{api_url}/workspace/{workspace}/thread/{thread}/chat", headers=headers, data=json.dumps({'mode': 'chat', 'message': f"{text}"}), proxies=proxies)
+        request.encoding = 'utf-8'
         if request.status_code == 200:
             response = request.json()['textResponse'].strip()
         else:
@@ -34,7 +36,7 @@ def translate_allm(api_url: str, headers: str, workspace: str, thread: str, text
         requests.delete(f"{api_url}/workspace/{workspace}/thread/{thread}", headers=headers, proxies=proxies)
     else:
         response = f"[TRANSLATIONFAIL]при создании треда получен код {create_thread.status_code}"
-    return response
+    return ftfy.fix_text(response)
 
 def translate_openai(api_url: str, headers: str, system: str, model: str, temperature: float, text: str) -> None:
     messages = [
@@ -47,12 +49,13 @@ def translate_openai(api_url: str, headers: str, system: str, model: str, temper
         "temperature": temperature,
     }
     request = requests.post(f"{api_url}/chat/completions", headers=headers, json=data)
+    request.encoding = 'utf-8'
     if request.status_code == 200:
         result = request.json()
         if "choices" in result:
-            response = result["choices"][0]["message"]["content"]
+            response = result["choices"][0]["message"]["content"].strip()
         else:
             response = f"[TRANSLATIONFAIL]при переводе получен пустой ответ"
     else:
         response = f"[TRANSLATIONFAIL]при переводе получен код {request.status_code}"
-    return response
+    return ftfy.fix_text(response)

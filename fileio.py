@@ -224,39 +224,21 @@ def csv_checker(dataset: tuple) -> list:
 def group_keys(data: dict, langs: list) -> list:
     main_dict = {}
     group_key = {}
-    key_list = []
     group_list = []
     for elem in data:
         for key in elem:
             main_dict[key] = {}
             main_dict[key]['English'] = elem[key]['English']
-    for key in main_dict:
-        group_key[key] = {}
-        group_key[key]['KEYS'] = []
-        if key not in key_list:
-            for item in main_dict:
-                if main_dict[item]['English'] == main_dict[key]['English'] and item != key:
-                    group_key[key]['English'] = main_dict[item]['English']
-                    for lang in langs:
-                        if lang != 'English':
-                            group_key[key][lang] = ""
-                    group_key[key]['KEYS'].append(item)
-                    key_list.append(item)
-        if len(group_key[key]) > 1: group_key[key]['KEYS'].append(key)
-        else:
-            group_key.pop(key)
-        key_list.append(key)
-    for key in group_key:
-        group_dict = {}
-        group_dict['KEYS'] = []
-        group_dict['KEYS'].append(key)
-        for item in group_key[key]['KEYS']:
-            if item != key: group_dict['KEYS'].append(item)
-        group_dict['English'] = group_key[key]['English']
+            if elem[key]['English'] in group_key:
+                group_key[elem[key]['English']].append(key)
+            else:
+                group_key[elem[key]['English']] = [key]
+    for val in group_key:
+        elem = {'KEYS': group_key[val]}
         for lang in langs:
-            if lang != 'English':
-                group_dict[lang] = ""
-        group_list.append(group_dict)
+            elem[lang] = ""
+        elem['English'] = val
+        group_list.append(elem)
     return group_list
 
 def conversion(csv_path: str, spec_path: str, build_dir: str, file_type: str, langs: list, clean: bool, group: bool):

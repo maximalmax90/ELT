@@ -2,14 +2,14 @@ from fileio import load_json, save_json, conversion, json_to_csv, save_csv
 from dicts import dict_update, dict_compare, dict_apply_diffs, dict_convert, dict_update_group
 from ai import tune_llm, translate_allm, translate_openai
 from datetime import timedelta
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget,
                              QTabWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QFileDialog, QGroupBox, QLineEdit, QCheckBox, QMessageBox, QComboBox,
                              QTextEdit, QGridLayout, QSlider, QProgressBar, QListWidget, QTextBrowser, QSpinBox)
-from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, QUrl
-from PyQt5.QtGui import QColor, QFont, QPalette
+from PyQt6.QtCore import Qt, QObject, QThread, pyqtSignal, QUrl
+from PyQt6.QtGui import QColor, QFont, QPalette
 from timeit import default_timer as timer
-import sys, os, webbrowser
+import sys, os
 
 # Разукрашиваем лог
 colors = {"[INFO]":QColor("LemonChiffon"),"[WARN]":QColor("Orange"),"[ OK ]":QColor("LimeGreen"),"[FAIL]":QColor("Tomato"),"[PASS]":QColor("Silver"),"[DONE]":QColor("PaleGreen"),"[SKIP]":QColor("#7fb3d5")}
@@ -18,19 +18,17 @@ file_types = ["Localization", "Dialogues", "PDA"]
 class TextBrowser(QTextBrowser):
     def __init__(self):
         super().__init__()
+        self.setOpenExternalLinks(True)  # Внешние ссылки открываются в браузере
         self.anchorClicked.connect(self.handle_link_click)
 
     def handle_link_click(self, url: QUrl):
         if url.isRelative():
             self.setSource(url)
-        else:
-            webbrowser.open(url.toString())
-            return
 
     def setSource(self, url: QUrl):
-        # Переопределяем метод setSource, чтобы блокировать внешние ссылки
         if url.isRelative():  # Только для внутренних ссылок
             super().setSource(url)
+
 # Подтягиваем страницу с howto
 def load_html_from_file(file_path):
     try:
@@ -104,7 +102,7 @@ class AIWorker(QObject):
                                     if config['AI_DEFAULT'] == "ALLM":
                                         response = translate_allm(config['AI']['ALLM']['API_URL'], self.headers, config['AI']['ALLM']['WORKER'].lower(), slug, request)
                                     if config['AI_DEFAULT'] == "OPENAI":
-                                        response = translate_openai(config['AI']['OPENAI']['API_URL'], self.headers, config['AI']['OPENAI']['TUNE'], config['AI']['OPENAI']['WORKER'], elem, config['AI']['OPENAI']['TEMPERATURE'], request)
+                                        response = translate_openai(config['AI']['OPENAI']['API_URL'], self.headers, config['AI']['OPENAI']['TUNE'], config['AI']['OPENAI']['WORKER'], config['AI']['OPENAI']['TEMPERATURE'], request)
                                     gen_end = timer()
                                     if "[TRANSLATIONFAIL]" in response:
                                         elem[lang] = ""
@@ -140,7 +138,7 @@ class AIWorker(QObject):
                                     if config['AI_DEFAULT'] == "ALLM":
                                         response = translate_allm(config['AI']['ALLM']['API_URL'], self.headers, config['AI']['ALLM']['WORKER'].lower(), slug, request)
                                     if config['AI_DEFAULT'] == "OPENAI":
-                                        response = translate_openai(config['AI']['OPENAI']['API_URL'], self.headers, config['AI']['OPENAI']['TUNE'], config['AI']['OPENAI']['WORKER'], key, config['AI']['OPENAI']['TEMPERATURE'], request)
+                                        response = translate_openai(config['AI']['OPENAI']['API_URL'], self.headers, config['AI']['OPENAI']['TUNE'], config['AI']['OPENAI']['WORKER'], config['AI']['OPENAI']['TEMPERATURE'], request)
                                     gen_end = timer()
                                     if "[TRANSLATIONFAIL]" in response:
                                         self.work_dict[key][lang] = ""
@@ -233,29 +231,29 @@ def select_file(edit_field, file_type: str):
     if file_path[0]:
         edit_field.setText(file_path[0])
 # Декомпиляция
-def decompile_start(csv_file, spec_file, file_type, tab, key_clean, key_group):
+def decompile_start(csv_file, spec_file, file_type, tab, key_clean, key_group, key_chain):
     tab.setEnabled(False)
     try:
         os.makedirs(os.path.join(config['DATA_DIR'],config['BUILD']), exist_ok=True)
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_decompiled.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_decompiled.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
-        if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_chains.json"):
+        if key_chain and os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_chains.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_chains.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
         if key_group and os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_group.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_group.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
         conversion(csv_file, spec_file, os.path.join(config['DATA_DIR'],config['BUILD']), file_type, config['USE_LANGS'],key_clean,key_group)
@@ -270,8 +268,8 @@ def update_start(src_file, dst_file, file_type, tab, log_edit, group):
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_updated.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_updated.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
 
@@ -308,8 +306,8 @@ def compare_start(current_file, new_file, file_type, tab):
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_diffs.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_diffs.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
         current = load_json(current_file)
@@ -327,8 +325,8 @@ def apply_start(current_file, diffs_file, file_type, tab):
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_applied.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_applied.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
         current = load_json(current_file)
@@ -349,8 +347,8 @@ def ai_translate_start(main_file, file_type, force, tab, progress_bar, log_edit,
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_translated{multi_queue if multi_count > 1 else ""}.json"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_translated{multi_queue if multi_count > 1 else ""}.json уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_group.json"):
@@ -362,7 +360,7 @@ def ai_translate_start(main_file, file_type, force, tab, progress_bar, log_edit,
         headers = {
             'accept': 'application/json',
             'Authorization': f'Bearer {config["AI"][config["AI_DEFAULT"]]["API_KEY"]}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json; charset=utf-8'
         }
         if not exist_intermediate:
             main_dict = load_json(main_file)
@@ -393,8 +391,8 @@ def compile_start(json_file, file_type, tab):
         if os.path.exists(f"{os.path.join(config['DATA_DIR'],config['BUILD'],file_type)}_prepared.csv"):
             reply = QMessageBox.question(None, 'Вопрос',
                                          f'Файл {file_type}_prepared.csv уже существует, перезаписать?',
-                                         QMessageBox.Yes | QMessageBox.Cancel)
-            if reply == QMessageBox.Cancel:
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            if reply == QMessageBox.StandardButton.Cancel:
                 tab.setEnabled(True)
                 return
         main_dict = load_json(json_file)
@@ -496,22 +494,22 @@ def main_form():
             else:
                 decompile_button.setEnabled(False)
         else:
-            if (decompile_type_checkbox.isChecked() and
+            if (decompile_chain_checkbox.isChecked() and
                     decompile_csv_edit.text().strip() and
                     decompile_spec_edit.text().strip()):
                 decompile_button.setEnabled(True)
-            elif (not decompile_type_checkbox.isChecked() and
+            elif (not decompile_chain_checkbox.isChecked() and
                   decompile_csv_edit.text().strip()):
                 decompile_button.setEnabled(True)
             else:
                 decompile_button.setEnabled(False)
     def on_DecompileListChanged():
         if decompile_type_combobox.currentText() == "Localization":
-            decompile_type_checkbox.setEnabled(False)
-            decompile_type_checkbox.setChecked(False)
+            decompile_chain_checkbox.setEnabled(False)
+            decompile_chain_checkbox.setChecked(False)
             decompile_spec_group.hide()
         else:
-            decompile_type_checkbox.setEnabled(True)
+            decompile_chain_checkbox.setEnabled(True)
             if decompile_type_combobox.currentText() == "Dialogues": decompile_spec_group.setTitle("ECF-файл:")
             else: decompile_spec_group.setTitle("YAML-файл:")
         decompile_spec_edit.setText("")
@@ -519,7 +517,7 @@ def main_form():
         on_DecompileTextChanged()
     def on_DecompileTypeChecked():
         on_DecompileTextChanged()
-        if decompile_type_checkbox.isChecked() and "Localization" not in decompile_type_combobox.currentText():
+        if decompile_chain_checkbox.isChecked() and "Localization" not in decompile_type_combobox.currentText():
             decompile_spec_group.show()
         else:
             decompile_spec_group.hide()
@@ -607,7 +605,8 @@ def main_form():
 
     window = QMainWindow()
     window_palette = QPalette()
-    window_palette.setColor(window_palette.Background, QColor("LightGrey"))
+    #window_palette.setColor(window_palette.Background, QColor("LightGrey"))
+    window_palette.setColor(QPalette.ColorRole.Window, QColor("LightGrey"))
 
     window.setPalette(window_palette)
     window.setFixedSize(796, 676)
@@ -632,13 +631,13 @@ def main_form():
             decompile_type_combobox = QComboBox()
             decompile_type_combobox.addItems(file_types)
             decompile_type_combobox.setFixedSize(100, 20)
-            decompile_type_checkbox = QCheckBox('Сформировать цепочку ключей')
-            decompile_type_checkbox.setEnabled(False)
+            decompile_chain_checkbox = QCheckBox('Сформировать цепочку ключей')
+            decompile_chain_checkbox.setEnabled(False)
             decompile_group_checkbox = QCheckBox('Сформировать группу ключей')
             #decompile_group_checkbox.setChecked(True)
             decompile_clear_checkbox = QCheckBox('Очистить ключи')
             decompile_type_layout.addWidget(decompile_type_combobox)
-            decompile_type_layout.addWidget(decompile_type_checkbox)
+            decompile_type_layout.addWidget(decompile_chain_checkbox)
             decompile_type_layout.addWidget(decompile_group_checkbox)
             decompile_type_layout.addWidget(decompile_clear_checkbox, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -679,13 +678,13 @@ def main_form():
             decompile_csv_edit.textChanged.connect(on_DecompileTextChanged)
             decompile_spec_edit.textChanged.connect(on_DecompileTextChanged)
             decompile_type_combobox.currentTextChanged.connect(on_DecompileListChanged)
-            decompile_type_checkbox.toggled.connect(on_DecompileTypeChecked)
+            decompile_chain_checkbox.toggled.connect(on_DecompileTypeChecked)
             decompile_csv_button.clicked.connect(lambda: select_file(decompile_csv_edit, "csv"))
             decompile_spec_button.clicked.connect(lambda: select_file(decompile_spec_edit,
                                                                       "ecf" if decompile_type_combobox.currentText() == "Dialogues" else "yaml"))
             decompile_button.clicked.connect(lambda: decompile_start(decompile_csv_edit.text(),
                                                                      decompile_spec_edit.text(),
-                                                                     decompile_type_combobox.currentText(), tab_widget, decompile_clear_checkbox.isChecked(), decompile_group_checkbox.isChecked()))
+                                                                     decompile_type_combobox.currentText(), tab_widget, decompile_clear_checkbox.isChecked(), decompile_group_checkbox.isChecked(), decompile_chain_checkbox.isChecked()))
         if title == "Обновление":
             update_type_group = QGroupBox("Тип файла:")
             update_type_layout = QHBoxLayout(update_type_group)
@@ -1044,7 +1043,7 @@ def main_form():
 
                     ai_settings_temperature_group = QGroupBox("Температура:")
                     ai_settings_temperature_layout = QHBoxLayout(ai_settings_temperature_group)
-                    ai_settings_temperature_slider = QSlider(Qt.Horizontal)
+                    ai_settings_temperature_slider = QSlider(Qt.Orientation.Horizontal)
                     ai_settings_temperature_slider.setMinimum(0)
                     ai_settings_temperature_slider.setMaximum(20)
                     ai_settings_temperature_slider.setSingleStep(1)
@@ -1151,7 +1150,7 @@ def main_form():
     window.setCentralWidget(window_widget)
 
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main_form()
