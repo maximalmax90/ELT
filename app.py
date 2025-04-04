@@ -207,11 +207,11 @@ def start_ai_thread(headers, work_dict, file_type, force, progress_bar, tab, log
 def save_log(text):
     file_path, _ = QFileDialog.getSaveFileName(filter="Log-файлы (*.log)")
     if file_path:
-        full_file_path = f"{file_path.split(".log")[0]}.log"
+        full_file_path = f"{file_path.split('.log')[0]}.log"
         try:
             with open(full_file_path, "w", encoding='utf-8') as file:
                 data = ""
-                items = text.findItems("", Qt.MatchContains | Qt.MatchRecursive)
+                items = text.findItems("", Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
                 for item in items:
                     data += f"{item.text()}\n"
                 file.write(data)
