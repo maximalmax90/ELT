@@ -102,5 +102,6 @@ def dict_apply_diffs(cur_dict: dict, diffs_dict: dict) -> dict:
     for elem in diffs_dict['Deleted']:
         for key in elem:
             dict_a.pop(key, None)
+    result = dict_convert(dict_a, "ToList")
     print(f"[INFO] Всего сделано изменений: {len(diffs_dict['Added']) + len(diffs_dict['Changed']) + len(diffs_dict['Deleted'])}")
-    return dict_a
+    return result
